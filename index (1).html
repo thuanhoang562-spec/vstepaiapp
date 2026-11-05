@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSTEP PRO: AI FIXED (GEMINI PRO)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --sidebar-bg: #1e293b;
+            --primary: #3b82f6; /* Xanh Gemini */
+            --secondary: #ec4899; 
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* API KEY CONFIG AREA */
+        .api-config {
+            padding: 15px; background: #334155; border-bottom: 1px solid #475569;
+        }
+        .api-input-group { display: flex; gap: 5px; margin-top: 5px; }
+        .api-input {
+            flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #475569;
+            background: #0f172a; color: white; font-size: 0.8rem;
+        }
+        .btn-save-key {
+            padding: 5px 10px; background: #22c55e; color: white; border: none; 
+            border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 0.7rem;
+        }
+        .connection-status { font-size: 0.7rem; margin-top: 5px; color: #fbbf24; display: none; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 320px; background-color: var(--sidebar-bg);
+            display: flex; flex-direction: column; border-right: 1px solid #333;
+        }
+        .brand {
+            padding: 20px; text-align: center; font-size: 1.5rem; font-weight: 900;
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        .menu-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .menu-list::-webkit-scrollbar { width: 5px; }
+        .menu-list::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 5px; }
+
+        .menu-cat {
+            font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); 
+            margin: 20px 0 5px 10px; font-weight: 800; border-bottom: 1px solid #333; padding-bottom: 5px;
+        }
+        .menu-item {
+            display: block; width: 100%; padding: 12px 15px; margin-bottom: 5px;
+            text-align: left; background: transparent; border: none; border-radius: 8px;
+            color: var(--text-muted); cursor: pointer; transition: 0.2s; font-size: 0.9rem; font-weight: 500;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.05); color: white; padding-left: 20px; }
+        .menu-item.active { background: var(--primary); color: white; font-weight: 700; padding-left: 20px;}
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1; padding: 30px; overflow-y: auto; background: var(--bg-dark); position: relative;
+        }
+        .lesson-header {
+            font-size: 2rem; font-weight: 800; color: white; margin-bottom: 30px;
+            border-bottom: 2px solid #333; padding-bottom: 10px;
+        }
+        
+        .qa-card {
+            background: #1e293b; border-radius: 16px; padding: 30px; margin-bottom: 40px;
+            border: 1px solid #334155;
+        }
+        .question { font-size: 1.2rem; font-weight: 700; color: #60a5fa; margin-bottom: 15px; display: flex; gap: 10px; }
+        
+        textarea.user-input {
+            width: 100%; height: 150px; background: #0f172a; border: 1px solid #334155;
+            border-radius: 8px; padding: 15px; color: white; font-size: 1rem;
+            resize: vertical; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;
+        }
+        textarea.user-input:focus { outline: none; border-color: var(--primary); }
+
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn { padding: 10px 20px; border-radius: 5px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px;}
+        .btn-grade { background: linear-gradient(45deg, #2563eb, #7c3aed); color: white; }
+        .btn-reveal { background: #334155; color: white; }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        /* AI FEEDBACK BOX */
+        .score-box {
+            background: #0f172a; padding: 20px; border-radius: 8px; margin-bottom: 15px;
+            border: 1px solid #3b82f6; display: none; animation: fadeIn 0.5s;
+        }
+        .score-box h3 { color: #60a5fa; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;}
+        .ai-content { font-size: 0.95rem; line-height: 1.6; color: #cbd5e1; }
+        .ai-content strong { color: #fff; }
+
+        .answer-box {
+            background: #334155; padding: 20px; border-radius: 8px; font-size: 1rem;
+            line-height: 1.6; white-space: pre-wrap; display: none; border-left: 4px solid #ec4899;
+        }
+
+        /* WIDGETS */
+        .widgets {
+            width: 320px; background: #1e293b; border-left: 1px solid #333;
+            padding: 20px; display: flex; flex-direction: column; gap: 20px;
+        }
+        .widget-card { background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #333; }
+        
+        .music-player {
+            width: 100%; aspect-ratio: 16/9; background: black; border-radius: 8px; overflow: hidden; margin-bottom: 10px;
+        }
+        .music-controls { display: flex; gap: 5px; }
+        .music-btn {
+            flex: 1; padding: 10px; font-size: 0.75rem; background: #334155; color: #aaa;
+            border: none; border-radius: 4px; cursor: pointer; font-weight: 700;
+        }
+        .music-btn.active { background: var(--primary); color: white; }
+
+        .timer-display { font-size: 3rem; font-weight: 800; color: white; text-align: center; font-family: monospace; }
+        
+        /* Loading Animation */
+        .loader {
+            border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3498db;
+            width: 20px; height: 20px; -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite; display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 1000px) { .widgets { display: none; } .sidebar { width: 250px; } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand"><i class="fas fa-robot"></i> GEMINI VSTEP</div>
+        
+        <div class="api-config">
+            <label style="font-size: 0.7rem; color: #aaa; display: block; margin-bottom: 5px;">
+                <i class="fas fa-key"></i> NHẬP GEMINI API KEY:
+            </label>
+            <div class="api-input-group">
+                <input type="password" id="api-key-input" class="api-input" placeholder="Dán mã AIza... vào đây">
+                <button class="btn-save-key" onclick="saveAndTestKey()">LƯU</button>
+            </div>
+            <div id="connection-status" class="connection-status">
+                <i class="fas fa-circle-notch fa-spin"></i> Đang kiểm tra kết nối...
+            </div>
+            <div style="font-size: 0.65rem; color: #666; margin-top: 5px;">
+                *Lấy Key tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #60a5fa;">Google AI Studio</a>.
+            </div>
+        </div>
+
+        <div class="menu-list" id="menu-list">
+            </div>
+    </div>
+
+    <div class="main-content">
+        <div id="lesson-container">
+            </div>
+    </div>
+
+    <div class="widgets">
+        <div class="widget-card">
+            <h4 style="color:var(--primary); margin-bottom:10px;">MUSIC STATION</h4>
+            <div class="music-player">
+                <iframe id="yt-embed" 
+                    src="https://www.youtube.com/embed/Q33hW1hC8t8?autoplay=1&mute=1" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <div class="music-controls">
+                <button class="music-btn active" onclick="playMusic('anh_trai', this)">ANH TRAI MÙA 2</button>
+                <button class="music-btn" onclick="playMusic('em_xinh', this)">EM XINH</button>
+            </div>
+            <p style="font-size:0.7rem; color:#666; margin-top:5px; text-align:center;">*Bấm vào video để bật tiếng</p>
+        </div>
+
+        <div class="widget-card">
+            <h4 style="color:#fff; margin-bottom:10px;">TIMER</h4>
+            <div class="timer-display" id="timer">25:00</div>
+            <button class="btn" style="width:100%; background:#fff; color:#000; margin-top:5px; justify-content: center;" onclick="toggleTimer()">START / STOP</button>
+        </div>
+    </div>
+
+<script>
+    // =========================================================================
+    // 1. QUẢN LÝ & KIỂM TRA API KEY (Đã sửa URL sang gemini-pro)
+    // =========================================================================
+    const apiKeyInput = document.getElementById('api-key-input');
+    const statusDiv = document.getElementById('connection-status');
+
+    if(localStorage.getItem('gemini_api_key')) {
+        apiKeyInput.value = localStorage.getItem('gemini_api_key');
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e"></i> Đã lưu Key.';
+    }
+
+    async function saveAndTestKey() {
+        const key = apiKeyInput.value.trim();
+        if (!key) { alert("Vui lòng nhập API Key!"); return; }
+        
+        localStorage.setItem('gemini_api_key', key);
+        
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#fbbf24';
+        statusDiv.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Đang test kết nối...';
+
+        try {
+            // SỬ DỤNG MODEL gemini-pro THAY VÌ gemini-1.5-flash ĐỂ TRÁNH LỖI
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: "Hello" }] }] }),
+                referrerPolicy: "no-referrer"
+            });
+            const data = await response.json();
+            
+            if (data.error) throw new Error(data.error.message);
+
+            statusDiv.style.color = '#22c55e';
+            statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Kết nối thành công!';
+        } catch (error) {
+            statusDiv.style.color = '#ef4444';
+            statusDiv.innerHTML = '<i class="fas fa-times-circle"></i> Lỗi: ' + error.message;
+        }
+    }
+
+    // =========================================================================
+    // 2. DỮ LIỆU ĐẦY ĐỦ (WORD-FOR-WORD TỪ PDF)
+    // =========================================================================
+    const fullData = {
+        'sp1_hobbies': {
+            category: "Speaking Part 1", title: "Hobbies & Interests",
+            content: [
+                {q: "What do you often do in your free time?", a: "I often read books in my free time. That's because it's fun and interesting. It makes me feel good and gives me energy. So, It helps to reduce my stress. Also, it's a good way to kill time."},
+                {q: "Do you play sports?", a: "Yes, I do. I often play badminton. That's because it's fun and interesting. It makes me feel good and gives me energy. Also, it's a good way to kill time. Actually, I usually play badminton with my best friend, Phuong, because I have a tight relationship with her."}
+            ]
+        },
+        'sp1_family': {
+            category: "Speaking Part 1", title: "Family",
+            content: [
+                {q: "Who never cooks in your family?", a: "Actually, I never cook in the family. This is because I'm too busy with my work and I hardly have time to do other things. So, my mom often cooks for me and my family."},
+                {q: "I would like to talk about my family.", a: "There are 4 people in my family: my parents, me and my sister. My parents are farmers. My sister and I are university students.\n\nI like talking with my mom. She is very patient to me and she often gives me helpful advice whenever I have problems.\n\nMy family often watch TV after dinner together. Also, we play sports or go picnic at the weekend."}
+            ]
+        },
+        'sp1_transport': {
+            category: "Speaking Part 1", title: "Transport",
+            content: [
+                {q: "How do you usually get to and from work/college? Why?", a: "I usually get to and from college by motorbike. Because my house is near my school, it takes me only 10 minutes to go to school by motorbike. ALSO, my area doesn't have public transport. So, I use my motorbike every day to go to school."},
+                {q: "How often do you take taxis?", a: "I never take a taxi. That's because it's a waste of money. It costs a lot of money to go by taxi. Since I'm a university student, I live on a tight budget."}
+            ]
+        },
+        'sp2_relax': {
+            category: "Speaking Part 2", title: "Relaxing Weekend",
+            content: [
+                {q: "Situation: Which of the following would be the best way to spend a relaxing weekend: watching TV at home, going on a trip, or hanging out with friends in a café?", a: "My situation is there are 3 options to spend a relaxing weekend: watching TV at home, going on a trip, or hanging out with friends in a café.\n\nWhen choosing among the three options, I believe that **hanging out with friends in a café** is the best choice for several reasons.\nFirst, it is good and suitable. Many people would choose to hang out with friends in a café in this situation. So, it's a common choice.\nIn addition, it's fun and interesting. It makes me feel good and gives me energy. So, It helps to reduce my stress. Also, it's a good way to kill time.\nFinally, it saves money. A cup of coffee is cheap. It costs only 25 thousand VND.\n\nHowever, there are several reasons why I don't choose the other options.\nFirst, it is boring to watch TV at home. It's very stressful.\nMoreover, it is inconvenient to go on a trip. It is very expensive and time-consuming.\n\nTaking everything into consideration, I would go for hanging out with friends in a café."}
+            ]
+        },
+        'sp2_gift': {
+            category: "Speaking Part 2", title: "Birthday Gift",
+            content: [
+                {q: "Situation: You are considering a birthday present for a friend. There are three suggestions: a clothing item, a book, a pair of movie tickets.", a: "When choosing among the three options, I believe that **a book** is the best choice for several reasons.\nFirst, it is good and suitable. So, it's a common choice.\nIn addition, My friend loves reading books. It's fun and interesting. It helps to reduce stress. Also, it's a good way to kill time.\nFinally, It saves money. A book is cheap. It costs only 50 thousand VND. Since I'm a university student, I live on a tight budget.\n\nHowever, there are several reasons why I don't choose the other options.\nFirst, it is not useful. My friend doesn't like watching movies. So, it's a waste of money.\nMoreover, It's a waste of time to buy clothes. It takes a long time to choose a clothing item for her. And she might not like it."}
+            ]
+        },
+        'sp3_zoos': {
+            category: "Speaking Part 3", title: "Animals in Zoos",
+            content: [
+                {q: "Topic: There are many disadvantages of keeping animals in zoos.", a: "There are many disadvantages of keeping animals in zoos.\n\nFirstly, animals can **lack survival skills**. People feed the animals in zoos so these animals cannot hunt for food themselves. It is not good for their health and behavior.\n\nSecondly, animals can **lack living space**. Some big animals like elephants and lions need open space to move and run freely, but space is limited in zoos.\n\nFinally, animals can **lose freedom** in zoos. They are always kept in cages and don’t have the chance to go out and run freely.\n\nTherefore, These are the disadvantages of keeping animals in zoos.\n\n(Follow-up Questions)\nThere are some benefits of keeping animals in zoos. Firstly, we can keep them safe. We can protect the animals that are in danger. We can provide food and shelter for them. Secondly, we can make money when keeping animals in zoos. We can sell tickets to the zoo. Finally, we can teach children knowledge about animals at the zoo."}
+            ]
+        },
+        'wt1_aldora': {
+            category: "Writing Task 1", title: "Letter to Aldora",
+            content: [
+                {q: "You have just received a letter from one of your close friends, Aldora from England. She is looking forward to your visit to London. Write a letter to her.", a: "Dear Aldora,\n\nThanks for your email. I hope you and your family are well. I'm excited to see you in London soon.\n\nFirstly, I want to tell you about my arrival time. My flight arrives at 9 in the morning on the 25th of October. I'm very happy that you can pick me up from the airport. I am sure you will recognise me because I haven't changed at all in the last 5 years.\n\nI haven't been to London before. This is the first time I come to London. I will stay there for 5 days. During my stay, I want to visit Big Ben Tower and some interesting places as well. Also, I want to try some traditional food and delicious dishes.\n\nI have to get back to work now. I look forward to seeing you soon in London.\n\nAll the best,"}
+            ]
+        },
+        'wt2_online': {
+            category: "Writing Task 2", title: "Online Learning",
+            content: [
+                {q: "Discuss the advantages and disadvantages of online learning.", a: "Online learning is a form of distance learning that takes place over the Internet. Some people believe that e-learning will replace traditional classes in the future. This essay aims to discuss the advantages and disadvantages of online learning.\n\nOn the one hand, people can study online anywhere anytime conveniently. For example, I am a university student and I have to work part-time. As a result, I don't have enough time to take more classes and I have to take online classes. Now, I can choose to study whenever I want and I don't even have to leave the house.\n\nOn the other hand, it's difficult to focus when studying online. Because people have to study alone at home, they can be distracted by many other things. It will be hard for them to focus on their study. Also, they can become lazy and quit the class if there is no teacher attending.\n\nIn conclusion, although people can study online anywhere anytime conveniently, it's difficult to focus. As a result, one should consider both advantages and disadvantages before deciding to study online."}
+            ]
+        }
+    };
+
+    // =========================================================================
+    // 3. RENDER GIAO DIỆN
+    // =========================================================================
+    const menuList = document.getElementById('menu-list');
+    let currentCategory = "";
+
+    for (const key in fullData) {
+        const item = fullData[key];
+        if (item.category !== currentCategory) {
+            currentCategory = item.category;
+            const cat = document.createElement('div');
+            cat.className = 'menu-cat';
+            cat.innerText = currentCategory;
+            menuList.appendChild(cat);
+        }
+        const btn = document.createElement('button');
+        btn.className = 'menu-item';
+        btn.innerText = item.title;
+        btn.onclick = () => loadLesson(key, btn);
+        menuList.appendChild(btn);
+    }
+
+    function loadLesson(key, btn) {
+        if(btn) {
+            document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        const data = fullData[key];
+        const container = document.getElementById('lesson-container');
+        let html = `<div class="lesson-header">${data.title}</div>`;
+
+        data.content.forEach((qa, index) => {
+            html += `
+                <div class="qa-card">
+                    <div class="question"><i class="fas fa-question-circle"></i> ${qa.q}</div>
+                    
+                    <textarea id="input-${index}" class="user-input" placeholder="Nhập câu trả lời của bạn vào đây (Tiếng Anh)..."></textarea>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-grade" onclick="gradeWithGemini(${index}, \`${escapeHtml(qa.q)}\`, \`${escapeHtml(qa.a)}\`)">
+                            <div class="loader" id="loader-${index}"></div>
+                            <span id="btn-text-${index}"><i class="fas fa-magic"></i> CHẤM ĐIỂM VỚI GEMINI</span>
+                        </button>
+                        <button class="btn btn-reveal" onclick="toggleAnswer(this)">
+                            <i class="fas fa-eye"></i> XEM BÀI MẪU
+                        </button>
+                    </div>
+
+                    <div id="score-${index}" class="score-box"></div>
+                    <div class="answer-box">${qa.a}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        document.querySelector('.main-content').scrollTop = 0;
+    }
+
+    function escapeHtml(text) { return text.replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+    function toggleAnswer(btn) {
+        const box = btn.parentElement.nextElementSibling.nextElementSibling;
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // =========================================================================
+    // 4. CHẤM ĐIỂM VỚI GEMINI (MODEL: GEMINI-PRO)
+    // =========================================================================
+    async function gradeWithGemini(index, question, sample) {
+        const apiKey = localStorage.getItem('gemini_api_key');
+        const userText = document.getElementById(`input-${index}`).value.trim();
+        const scoreBox = document.getElementById(`score-${index}`);
+        const loader = document.getElementById(`loader-${index}`);
+        const btnText = document.getElementById(`btn-text-${index}`);
+
+        if (!userText) { alert("Bạn chưa nhập câu trả lời!"); return; }
+        if (!apiKey) { alert("Vui lòng nhập API Key và bấm LƯU trước!"); return; }
+
+        loader.style.display = "block";
+        btnText.style.display = "none";
+        scoreBox.style.display = "none";
+
+        const prompt = `
+            Bạn là giám khảo VSTEP. Hãy chấm điểm đoạn văn sau.
+            Câu hỏi: "${question}"
+            Bài mẫu: "${sample}"
+            Học sinh: "${userText}"
+
+            Output (Markdown):
+            1. **Điểm:** ?/10
+            2. **Nhận xét:** (Ngắn gọn về Từ vựng, Ngữ pháp, Ý)
+            3. **Sửa lỗi:** (Nếu có)
+        `;
+
+        try {
+            // SỬ DỤNG gemini-pro ĐỂ ĐẢM BẢO TƯƠNG THÍCH V1BETA
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                referrerPolicy: "no-referrer"
+            });
+
+            const data = await response.json();
+            
+            if (data.error) throw new Error(data.error.message);
+
+            const feedback = data.candidates[0].content.parts[0].text;
+            
+            scoreBox.innerHTML = `
+                <h3><i class="fas fa-robot"></i> ĐÁNH GIÁ CỦA AI</h3>
+                <div class="ai-content">${marked.parse(feedback)}</div>
+            `;
+            scoreBox.style.display = "block";
+
+        } catch (error) {
+            alert("Lỗi kết nối Gemini: " + error.message + ". Hãy kiểm tra lại Key!");
+        } finally {
+            loader.style.display = "none";
+            btnText.style.display = "inline";
+        }
+    }
+
+    // =========================================================================
+    // 5. MEDIA & TIMER (SỬ DỤNG ID VIDEO CỤ THỂ ĐỂ FIX LỖI)
+    // =========================================================================
+    const playlists = {
+        'anh_trai': 'Q33hW1hC8t8', // Video Mix Anh Trai Say Hi Mùa 2
+        'em_xinh': 'y8XW8gshY4M'   // Video Mix Em Xinh
+    };
+
+    function playMusic(type, btn) {
+        document.querySelectorAll('.music-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Sử dụng video ID cụ thể
+        document.getElementById('yt-embed').src = `https://www.youtube.com/embed/${playlists[type]}?autoplay=1&mute=0`;
+    }
+
+    let timeLeft = 1500; let timerId = null;
+    function toggleTimer() {
+        if(timerId) { clearInterval(timerId); timerId = null; }
+        else { timerId = setInterval(() => { if(timeLeft > 0) { timeLeft--; updateTime(); } else { clearInterval(timerId); alert("Hết giờ!"); } }, 1000); }
+    }
+    function updateTime() { document.getElementById('timer').innerText = `${Math.floor(timeLeft/60).toString().padStart(2,'0')}:${(timeLeft%60).toString().padStart(2,'0')}`; }
+
+    // Init first lesson
+    window.onload = () => { loadLesson('sp1_hobbies', document.querySelector('.menu-item')); };
+
+</script>
+</body>
+</html>
